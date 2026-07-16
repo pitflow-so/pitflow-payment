@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: pitflow-payment
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:pitflow_payment}
+    username: ${DB_USERNAME:pitflow_payment}
+    password: ${DB_PASSWORD:pitflow_payment}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+management:
+  endpoints.web.exposure.include: health,info
+  endpoint.health.probes.enabled: true
