@@ -1,0 +1,22 @@
+services:
+  pitflow-payment-db-local:
+    image: postgres:16-alpine
+    container_name: pitflow-payment-db-local
+    environment:
+      POSTGRES_DB: ${DB_NAME:-pitflow_payment}
+      POSTGRES_USER: ${DB_USERNAME:-pitflow_payment}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pitflow_payment}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pitflow-payment-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [pitflow-payment-network]
+volumes:
+  pitflow-payment-db-data:
+networks:
+  pitflow-payment-network:
