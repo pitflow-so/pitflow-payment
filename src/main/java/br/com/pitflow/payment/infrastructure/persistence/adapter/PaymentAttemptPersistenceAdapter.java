@@ -7,6 +7,7 @@ import br.com.pitflow.payment.infrastructure.persistence.repository.PaymentAttem
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -23,5 +24,9 @@ public class PaymentAttemptPersistenceAdapter implements PaymentAttemptGateway {
 
     public List<PaymentAttempt> findByPaymentId(UUID id) {
         return repository.findByPaymentId(id).stream().map(PaymentAttemptMapper::toDomain).toList();
+    }
+
+    public Optional<PaymentAttempt> findFirstByPaymentId(UUID id) {
+        return repository.findFirstByPaymentIdOrderByCreatedAtDesc(id).map(PaymentAttemptMapper::toDomain);
     }
 }

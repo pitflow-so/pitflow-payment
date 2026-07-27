@@ -43,7 +43,7 @@ public class PaymentJpa {
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false)
     private PaymentProvider provider;
-    @Column(name = "payer_email", nullable = false)
+    @Column(name = "payer_email")
     private String payerEmail;
     @Column(name = "approved_at")
     private Instant approvedAt;

@@ -24,6 +24,8 @@ public class OutboxEventJpa {
     private String payload;
     @Column(nullable = false)
     private String status;
+    @Column
+    private String destination;
     @Column(nullable = false)
     private int attempts;
     @Column(name = "created_at", nullable = false)
@@ -38,12 +40,14 @@ public class OutboxEventJpa {
     protected OutboxEventJpa() {
     }
 
-    public OutboxEventJpa(UUID i, UUID a, String e, String p, String s, int at, Instant c, Instant pr, Instant n, String l) {
+    public OutboxEventJpa(UUID i, UUID a, String e, String p, String s, String d, int at, Instant c, Instant pr,
+                          Instant n, String l) {
         id = i;
         aggregateId = a;
         eventType = e;
         payload = p;
         status = s;
+        destination = d;
         attempts = at;
         createdAt = c;
         processedAt = pr;
@@ -51,11 +55,19 @@ public class OutboxEventJpa {
         lastError = l;
     }
 
+    public String getPayload() {
+        return payload;
+    }
+
     public UUID getId() {
         return id;
     }
 
-    public String getPayload() {
-        return payload;
+    public String getStatus() {
+        return status;
+    }
+
+    public String getDestination() {
+        return destination;
     }
 }
