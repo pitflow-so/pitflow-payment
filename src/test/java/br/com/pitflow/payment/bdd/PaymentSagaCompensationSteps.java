@@ -184,12 +184,28 @@ public class PaymentSagaCompensationSteps {
     }
 
     private String authenticateMechanic() throws Exception {
-        var body = objectMapper.createObjectNode()
-                .put("username", required("BDD_MECHANIC_USERNAME"))
-                .put("password", required("BDD_MECHANIC_PASSWORD"));
-        var response = send("POST", "/registry/auth/login", body.toString(), null);
-        assertStatus(response, 200, "autenticação do mecânico");
-        return requiredToken(response, "mecânico");
+        var username = required("BDD_MECHANIC_USERNAME");
+        var password = required("BDD_MECHANIC_PASSWORD");
+        var loginBody = objectMapper.createObjectNode()
+                .put("username", username)
+                .put("password", password);
+        var loginResponse = send("POST", "/registry/auth/login", loginBody.toString(), null);
+
+        if (loginResponse.statusCode() == 200) {
+            return requiredToken(loginResponse, "mecânico");
+        }
+
+        var createBody = objectMapper.createObjectNode()
+                .put("name", "Mecânico automatizado do BDD")
+                .put("username", username)
+                .put("password", password);
+        var createResponse = send("POST", "/registry/mechanics", createBody.toString(), null);
+        assertStatus(createResponse, 201,
+                "cadastro do mecânico do BDD após falha na autenticação");
+
+        var retryResponse = send("POST", "/registry/auth/login", loginBody.toString(), null);
+        assertStatus(retryResponse, 200, "autenticação do mecânico recém-cadastrado");
+        return requiredToken(retryResponse, "mecânico");
     }
 
     private String requiredToken(HttpResponse<String> response, String actor) throws Exception {
