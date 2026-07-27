@@ -48,6 +48,7 @@ ambiente local. As variáveis estão listadas em `.env.example`.
 Com o `context-path` `/payment`:
 
 - `POST /payment/webhooks/mercado-pago`
+- `POST /payment/homologation/service-orders/{serviceOrderId}/reject`
 - `/payment/swagger-ui/index.html`
 - `/payment/v3/api-docs`
 - `/payment/actuator/health`
@@ -55,6 +56,13 @@ Com o `context-path` `/payment`:
 O webhook é público, mas rejeita notificações sem assinatura válida. O Access
 Token e a assinatura secreta nunca devem ser enviados ao cliente ou gravados no
 repositório.
+
+O endpoint de homologação exige um JWT com `ROLE_MECHANIC` e existe apenas para
+demonstrar a compensação da SAGA sem alterar configuração ou refazer deploy. Ele
+rejeita o pagamento mais recente da OS quando estiver em `CHECKOUT_PENDING`,
+`PENDING` ou `IN_PROCESS`. Uma repetição sobre `REJECTED` é idempotente; estados
+finais, especialmente `APPROVED`, retornam conflito. Esse recurso deve ser
+removido ou isolado por perfil antes de uso produtivo.
 
 ## Configuração do Mercado Pago
 

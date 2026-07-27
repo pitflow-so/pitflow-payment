@@ -34,7 +34,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "payment.mercado-pago.enabled=true",
         "payment.mercado-pago.access-token=test-access-token",
         "payment.mercado-pago.webhook-secret=test-webhook-secret",
-        "payment.webhook.enabled=true"
+        "payment.webhook.enabled=true",
+        "api.security.token.secret=test-jwt-secret-with-at-least-32-bytes"
 })
 @Testcontainers(disabledWithoutDocker = true)
 class PostgreSqlPersistenceIT {

@@ -43,3 +43,7 @@ payment:
     webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
   webhook:
     enabled: ${PAYMENT_WEBHOOK_ENABLED:false}
+api:
+  security:
+    token:
+      secret: ${JWT_SECRET:}

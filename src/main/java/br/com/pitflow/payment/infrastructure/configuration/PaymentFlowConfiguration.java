@@ -13,6 +13,9 @@ import br.com.pitflow.payment.core.usecase.ProcessMercadoPagoWebhookImp;
 import br.com.pitflow.payment.core.usecase.inputPort.CreatePayment;
 import br.com.pitflow.payment.core.usecase.inputPort.ProcessCreatePayment;
 import br.com.pitflow.payment.core.usecase.inputPort.ProcessMercadoPagoWebhook;
+import br.com.pitflow.payment.core.usecase.inputPort.RejectPaymentForHomologation;
+import br.com.pitflow.payment.core.usecase.RejectPaymentForHomologationImp;
+import br.com.pitflow.payment.controller.PaymentHomologationController;
 import br.com.pitflow.payment.infrastructure.consumer.sqs.PaymentCommandConsumer;
 import br.com.pitflow.payment.infrastructure.provider.mercadopago.MercadoPagoCheckoutAdapter;
 import br.com.pitflow.payment.infrastructure.web.MercadoPagoWebhookSignatureValidator;
@@ -100,5 +103,19 @@ public class PaymentFlowConfiguration {
     @ConditionalOnProperty(name = "payment.webhook.enabled", havingValue = "true")
     PaymentWebhookController paymentWebhookController(ProcessMercadoPagoWebhook useCase) {
         return new PaymentWebhookController(useCase);
+    }
+
+    @Bean
+    RejectPaymentForHomologation rejectPaymentForHomologation(
+            PaymentGateway payments,
+            br.com.pitflow.payment.core.gateway.PaymentStatusEventGateway events,
+            TransactionGateway tx,
+            ClockGateway clock) {
+        return new RejectPaymentForHomologationImp(payments, events, tx, clock);
+    }
+
+    @Bean
+    PaymentHomologationController paymentHomologationController(RejectPaymentForHomologation useCase) {
+        return new PaymentHomologationController(useCase);
     }
 }

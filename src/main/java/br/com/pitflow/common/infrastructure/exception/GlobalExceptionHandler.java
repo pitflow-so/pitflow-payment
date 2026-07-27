@@ -5,6 +5,7 @@ import br.com.pitflow.payment.core.exception.InvalidPaymentDataException;
 import br.com.pitflow.payment.core.exception.InvalidPaymentStatusTransitionException;
 import br.com.pitflow.payment.core.exception.PaymentIdempotencyConflictException;
 import br.com.pitflow.payment.core.exception.PaymentNotFoundException;
+import br.com.pitflow.payment.core.exception.PaymentHomologationConflictException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,12 @@ public class GlobalExceptionHandler {
                 : "PAYMENT_DUPLICATE";
         logFunctional(code, e, r);
         return response(HttpStatus.CONFLICT, code, e.getMessage(), r);
+    }
+
+    @ExceptionHandler(PaymentHomologationConflictException.class)
+    ResponseEntity<ApiError> homologationConflict(Exception e, HttpServletRequest r) {
+        logFunctional("PAYMENT_HOMOLOGATION_CONFLICT", e, r);
+        return response(HttpStatus.CONFLICT, "PAYMENT_HOMOLOGATION_CONFLICT", e.getMessage(), r);
     }
 
     @ExceptionHandler(InvalidPaymentStatusTransitionException.class)
