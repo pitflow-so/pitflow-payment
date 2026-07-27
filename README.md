@@ -60,7 +60,6 @@ repositório.
 
 - `MERCADO_PAGO_ACCESS_TOKEN`: Access Token de teste usado pelo backend.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura secreta configurada no painel.
-- `MERCADO_PAGO_NOTIFICATION_URL`: URL HTTPS pública do webhook.
 - `MERCADO_PAGO_TEST_MODE=true`: seleciona `sandbox_init_point`.
 - `MERCADO_PAGO_ENABLED=true`: habilita o adapter.
 - `PAYMENT_WEBHOOK_ENABLED=true`: habilita o endpoint.

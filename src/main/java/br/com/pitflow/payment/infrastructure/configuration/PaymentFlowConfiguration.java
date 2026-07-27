@@ -52,10 +52,8 @@ public class PaymentFlowConfiguration {
     @ConditionalOnProperty(name = "payment.consumer.enabled", havingValue = "true")
     ProcessCreatePayment processCreatePayment(CreatePayment createPayment, PaymentGateway payments,
             PaymentAttemptGateway attempts, PaymentProviderGateway provider, PaymentLinkEventGateway events,
-            TransactionGateway tx, ClockGateway clock,
-            @Value("${payment.mercado-pago.notification-url}") String notificationUrl) {
-        return new ProcessCreatePaymentImp(createPayment, payments, attempts, provider, events, tx, clock,
-                notificationUrl);
+            TransactionGateway tx, ClockGateway clock) {
+        return new ProcessCreatePaymentImp(createPayment, payments, attempts, provider, events, tx, clock);
     }
 
     @Bean
