@@ -85,6 +85,25 @@ class MercadoPagoWebhookRestAdapterTest {
         verifyNoInteractions(controller);
     }
 
+    @Test
+    void acceptsLegacyQueryNotificationWithReducedBody() throws Exception {
+        when(controller.mercadoPago(any())).thenReturn(new ProcessMercadoPagoWebhook.Result(
+                ProcessMercadoPagoWebhook.Status.PROCESSED, UUID.randomUUID()));
+
+        mvc.perform(post("/webhooks/mercado-pago")
+                        .queryParam("id", "123456")
+                        .queryParam("topic", "payment")
+                        .header("x-request-id", "req-abc")
+                        .header("x-signature",
+                                "ts=1742505638683,v1=8f3576c5918c00e6fb214b42d7d963dbe5ab1d129d35ba3c30d946898e250bde")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("processed"));
+        verify(controller).mercadoPago(argThat(command ->
+                "123456".equals(command.paymentId())
+                        && "payment.updated".equals(command.action())));
+    }
+
     private String payload() {
         return """
                 {"id":"notification-1","type":"payment","action":"payment.updated",

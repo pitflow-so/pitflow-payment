@@ -41,13 +41,12 @@ public class MercadoPagoWebhookRestAdapter {
             @RequestParam(value = "topic", required = false) String legacyQueryType,
             @RequestBody String rawPayload) {
         var root = mapper.readTree(rawPayload);
-        String bodyType = root.path("type").asText();
-        String bodyDataId = root.path("data").path("id").asText();
+            String bodyType = text(root, "type");
+            String bodyDataId = text(root.path("data"), "id");
         String effectiveDataId = firstNonBlank(queryDataId, legacyQueryDataId, bodyDataId);
-        String effectiveQueryType = firstNonBlank(queryType, legacyQueryType);
-        if (!"payment".equals(bodyType)
-                || (effectiveQueryType != null && !"payment".equals(effectiveQueryType))
-                || bodyDataId.isBlank()
+        String effectiveType = firstNonBlank(queryType, legacyQueryType, bodyType);
+        if (!"payment".equals(effectiveType)
+                || effectiveDataId == null
                 || differs(queryDataId, bodyDataId)
                 || differs(legacyQueryDataId, bodyDataId)) {
             return ResponseEntity.badRequest().body(Map.of("status", "invalid_payload"));
@@ -55,17 +54,18 @@ public class MercadoPagoWebhookRestAdapter {
         if (!signatures.isValid(signature, requestId, effectiveDataId)) {
             return ResponseEntity.status(401).body(Map.of("status", "invalid_signature"));
         }
-        String notificationId = root.path("id").asText();
-        String action = root.path("action").asText();
-        if (notificationId.isBlank() || action.isBlank()) {
+        String notificationId = firstNonBlank(text(root, "id"), requestId);
+        String action = firstNonBlank(text(root, "action"), "payment.updated");
+        if (notificationId == null || action == null) {
             return ResponseEntity.badRequest().body(Map.of("status", "invalid_payload"));
         }
-        String eventKey = notificationId + ":" + action + ":" + bodyDataId;
+        String eventKey = notificationId + ":" + action + ":" + effectiveDataId;
         ProcessMercadoPagoWebhook.Result result = controller.mercadoPago(
-                new ProcessMercadoPagoWebhook.Command(eventKey, notificationId, bodyDataId, action, rawPayload));
+                new ProcessMercadoPagoWebhook.Command(
+                        eventKey, notificationId, effectiveDataId, action, rawPayload));
         if (result.status() == ProcessMercadoPagoWebhook.Status.IGNORED) {
             LOGGER.warn("Ignoring Mercado Pago payment not owned by PitFlow notificationId={} paymentId={} action={}",
-                    notificationId, bodyDataId, action);
+                    notificationId, effectiveDataId, action);
         }
         return ResponseEntity.ok(Map.of("status", result.status().name().toLowerCase()));
     }
@@ -82,6 +82,13 @@ public class MercadoPagoWebhookRestAdapter {
     private static boolean differs(String queryValue, String bodyValue) {
         return queryValue != null
                 && !queryValue.isBlank()
+                && bodyValue != null
+                && !bodyValue.isBlank()
                 && !queryValue.equals(bodyValue);
+    }
+
+    private static String text(tools.jackson.databind.JsonNode node, String field) {
+        var value = node.path(field);
+        return value.isMissingNode() || value.isNull() ? null : value.asText();
     }
 }
