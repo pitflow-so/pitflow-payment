@@ -36,29 +36,23 @@ public class MercadoPagoWebhookRestAdapter {
             @RequestHeader(value = "x-signature", required = false) String signature,
             @RequestHeader(value = "x-request-id", required = false) String requestId,
             @RequestParam(value = "data.id", required = false) String queryDataId,
-            @RequestParam(value = "id", required = false) String legacyQueryDataId,
             @RequestParam(value = "type", required = false) String queryType,
-            @RequestParam(value = "topic", required = false) String legacyQueryType,
             @RequestBody String rawPayload) {
         var root = mapper.readTree(rawPayload);
-            String bodyType = text(root, "type");
-            String bodyDataId = text(root.path("data"), "id");
-        String effectiveDataId = firstNonBlank(queryDataId, legacyQueryDataId, bodyDataId);
-        String effectiveType = firstNonBlank(queryType, legacyQueryType, bodyType);
+        String bodyType = text(root, "type");
+        String bodyDataId = text(root.path("data"), "id");
+        String effectiveType = firstNonBlank(queryType, bodyType);
         if (!"payment".equals(effectiveType)
-                || effectiveDataId == null
-                || differs(queryDataId, bodyDataId)
-                || differs(legacyQueryDataId, bodyDataId)) {
+                || !hasText(queryDataId)
+                || differs(queryDataId, bodyDataId)) {
             return ResponseEntity.badRequest().body(Map.of("status", "invalid_payload"));
         }
-        if (!signatures.isValid(signature, requestId, effectiveDataId)) {
+        if (!signatures.isValid(signature, requestId, queryDataId)) {
             LOGGER.warn(
                     "Rejected Mercado Pago webhook: invalid signature "
-                            + "signaturePresent={} requestIdPresent={} "
-                            + "dataIdSource={} type={}",
+                            + "signaturePresent={} requestIdPresent={} type={}",
                     hasText(signature),
                     hasText(requestId),
-                    dataIdSource(queryDataId, legacyQueryDataId, bodyDataId),
                     effectiveType
             );
             return ResponseEntity.status(401).body(Map.of("status", "invalid_signature"));
@@ -68,13 +62,13 @@ public class MercadoPagoWebhookRestAdapter {
         if (notificationId == null || action == null) {
             return ResponseEntity.badRequest().body(Map.of("status", "invalid_payload"));
         }
-        String eventKey = notificationId + ":" + action + ":" + effectiveDataId;
+        String eventKey = notificationId + ":" + action + ":" + queryDataId;
         ProcessMercadoPagoWebhook.Result result = controller.mercadoPago(
                 new ProcessMercadoPagoWebhook.Command(
-                        eventKey, notificationId, effectiveDataId, action, rawPayload));
+                        eventKey, notificationId, queryDataId, action, rawPayload));
         if (result.status() == ProcessMercadoPagoWebhook.Status.IGNORED) {
             LOGGER.warn("Ignoring Mercado Pago payment not owned by PitFlow notificationId={} paymentId={} action={}",
-                    notificationId, effectiveDataId, action);
+                    notificationId, queryDataId, action);
         }
         return ResponseEntity.ok(Map.of("status", result.status().name().toLowerCase()));
     }
@@ -98,23 +92,6 @@ public class MercadoPagoWebhookRestAdapter {
 
     private static boolean hasText(String value) {
         return value != null && !value.isBlank();
-    }
-
-    private static String dataIdSource(
-            String queryDataId,
-            String legacyQueryDataId,
-            String bodyDataId
-    ) {
-        if (hasText(queryDataId)) {
-            return "data.id-query";
-        }
-        if (hasText(legacyQueryDataId)) {
-            return "legacy-id-query";
-        }
-        if (hasText(bodyDataId)) {
-            return "body";
-        }
-        return "missing";
     }
 
     private static String text(tools.jackson.databind.JsonNode node, String field) {

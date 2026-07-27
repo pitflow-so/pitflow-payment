@@ -57,19 +57,15 @@ class MercadoPagoWebhookRestAdapterTest {
     }
 
     @Test
-    void acceptsRealNotificationWithDataIdOnlyInBody() throws Exception {
-        when(controller.mercadoPago(any())).thenReturn(new ProcessMercadoPagoWebhook.Result(
-                ProcessMercadoPagoWebhook.Status.PROCESSED, UUID.randomUUID()));
-
+    void rejectsNotificationWithoutWebhookDataIdQueryParameter() throws Exception {
         mvc.perform(post("/webhooks/mercado-pago")
                         .header("x-request-id", "req-abc")
                         .header("x-signature",
                                 "ts=1742505638683,v1=8f3576c5918c00e6fb214b42d7d963dbe5ab1d129d35ba3c30d946898e250bde")
                         .contentType(MediaType.APPLICATION_JSON).content(payload()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("processed"));
-        verify(controller).mercadoPago(argThat(command ->
-                "123456".equals(command.paymentId())));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("invalid_payload"));
+        verifyNoInteractions(controller);
     }
 
     @Test
@@ -86,10 +82,7 @@ class MercadoPagoWebhookRestAdapterTest {
     }
 
     @Test
-    void acceptsLegacyQueryNotificationWithReducedBody() throws Exception {
-        when(controller.mercadoPago(any())).thenReturn(new ProcessMercadoPagoWebhook.Result(
-                ProcessMercadoPagoWebhook.Status.PROCESSED, UUID.randomUUID()));
-
+    void rejectsLegacyIpnQueryParameters() throws Exception {
         mvc.perform(post("/webhooks/mercado-pago")
                         .queryParam("id", "123456")
                         .queryParam("topic", "payment")
@@ -97,11 +90,9 @@ class MercadoPagoWebhookRestAdapterTest {
                         .header("x-signature",
                                 "ts=1742505638683,v1=8f3576c5918c00e6fb214b42d7d963dbe5ab1d129d35ba3c30d946898e250bde")
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("processed"));
-        verify(controller).mercadoPago(argThat(command ->
-                "123456".equals(command.paymentId())
-                        && "payment.updated".equals(command.action())));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("invalid_payload"));
+        verifyNoInteractions(controller);
     }
 
     private String payload() {

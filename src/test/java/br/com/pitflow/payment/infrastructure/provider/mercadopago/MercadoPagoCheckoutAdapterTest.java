@@ -56,8 +56,8 @@ class MercadoPagoCheckoutAdapterTest {
                         """, MediaType.APPLICATION_JSON));
 
         var result = adapter.createCheckoutPreference(new br.com.pitflow.payment.core.gateway.PaymentProviderGateway
-                .CheckoutPreferenceCommand("payment:456", "OS 456", new BigDecimal("450.00"), "BRL", "",
-                Instant.parse("2026-07-28T00:00:00Z")));
+                .CheckoutPreferenceCommand("payment:456", "OS 456", new BigDecimal("450.00"), "BRL",
+                        Instant.parse("2026-07-28T00:00:00Z")));
 
         assertThat(result.checkoutUrl()).isEqualTo("https://sandbox/new");
         server.verify();

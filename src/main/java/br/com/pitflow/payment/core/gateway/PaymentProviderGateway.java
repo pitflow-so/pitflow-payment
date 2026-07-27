@@ -12,7 +12,7 @@ public interface PaymentProviderGateway {
     ProviderPaymentResult findPaymentByProviderId(String id);
 
     record CheckoutPreferenceCommand(String externalReference, String title, BigDecimal amount, String currency,
-                                     String notificationUrl, Instant expiresAt) {
+                                     Instant expiresAt) {
     }
 
     record CheckoutPreferenceResult(String preferenceId, String checkoutUrl, Instant expiresAt) {

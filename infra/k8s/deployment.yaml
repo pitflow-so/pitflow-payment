@@ -74,11 +74,6 @@ spec:
                 secretKeyRef:
                   name: pitflow-payment-secrets
                   key: MERCADO_PAGO_WEBHOOK_SECRET
-            - name: MERCADO_PAGO_NOTIFICATION_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: pitflow-payment-config
-                  key: MERCADO_PAGO_NOTIFICATION_URL
             - name: AWS_REGION
               value: "us-east-1"
             - name: PAYMENT_COMMAND_QUEUE_NAME

@@ -40,7 +40,6 @@ payment:
     base-url: ${MERCADO_PAGO_BASE_URL:https://api.mercadopago.com}
     access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
     test-mode: ${MERCADO_PAGO_TEST_MODE:true}
-    notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:}
     webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
   webhook:
     enabled: ${PAYMENT_WEBHOOK_ENABLED:false}

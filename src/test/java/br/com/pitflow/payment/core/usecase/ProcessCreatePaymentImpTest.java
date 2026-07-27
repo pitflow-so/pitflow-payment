@@ -80,8 +80,7 @@ class ProcessCreatePaymentImpTest {
     }
 
     private ProcessCreatePaymentImp useCase() {
-        return new ProcessCreatePaymentImp(create, payments, attempts, provider, events, tx, clock,
-                "https://api.example/payment/webhooks/mercado-pago");
+        return new ProcessCreatePaymentImp(create, payments, attempts, provider, events, tx, clock);
     }
 
     private ProcessCreatePayment.Command command(UUID orderId) {

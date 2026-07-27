@@ -20,11 +20,10 @@ public final class ProcessCreatePaymentImp implements ProcessCreatePayment {
     private final PaymentLinkEventGateway events;
     private final TransactionGateway tx;
     private final ClockGateway clock;
-    private final String notificationUrl;
 
     public ProcessCreatePaymentImp(CreatePayment createPayment, PaymentGateway payments, PaymentAttemptGateway attempts,
                                    PaymentProviderGateway provider, PaymentLinkEventGateway events,
-                                   TransactionGateway tx, ClockGateway clock, String notificationUrl) {
+                                   TransactionGateway tx, ClockGateway clock) {
         this.createPayment = createPayment;
         this.payments = payments;
         this.attempts = attempts;
@@ -32,7 +31,6 @@ public final class ProcessCreatePaymentImp implements ProcessCreatePayment {
         this.events = events;
         this.tx = tx;
         this.clock = clock;
-        this.notificationUrl = notificationUrl;
     }
 
     @Override
@@ -51,7 +49,7 @@ public final class ProcessCreatePaymentImp implements ProcessCreatePayment {
         var preference = provider.findCheckoutPreference(payment.getExternalReference())
                 .orElseGet(() -> provider.createCheckoutPreference(new PaymentProviderGateway.CheckoutPreferenceCommand(
                         payment.getExternalReference(), command.description(), command.amount(), command.currency(),
-                        notificationUrl, requestedExpiration)));
+                        requestedExpiration)));
 
         return tx.execute(() -> {
             var concurrent = attempts.findFirstByPaymentId(payment.getId());

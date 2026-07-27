@@ -8,4 +8,3 @@ data:
   DB_PORT: "${DB_PORT}"
   DB_NAME: "${DB_NAME}"
   DB_USERNAME: "${DB_USERNAME}"
-  MERCADO_PAGO_NOTIFICATION_URL: "${API_PUBLIC_URL}/payment/webhooks/mercado-pago"

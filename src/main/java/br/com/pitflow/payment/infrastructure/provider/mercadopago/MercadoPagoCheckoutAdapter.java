@@ -56,9 +56,6 @@ public class MercadoPagoCheckoutAdapter implements PaymentProviderGateway {
         body.put("expires", true);
         body.put("expiration_date_from", Instant.now().toString());
         body.put("expiration_date_to", command.expiresAt().toString());
-        if (command.notificationUrl() != null && !command.notificationUrl().isBlank()) {
-            body.put("notification_url", command.notificationUrl());
-        }
         String json = client.post().uri("/checkout/preferences")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body).retrieve().body(String.class);
