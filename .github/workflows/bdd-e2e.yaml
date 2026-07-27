@@ -1,0 +1,74 @@
+name: Payment SAGA BDD E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  SECRET_ID: pitflow/bootstrap
+  BDD_ORCHESTRATOR_TABLE: pitflow-orchestrator
+
+jobs:
+  compensation:
+    name: Payment rejection compensation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Read BDD configuration
+        env:
+          BDD_MECHANIC_USERNAME: ${{ secrets.BDD_MECHANIC_USERNAME }}
+          BDD_MECHANIC_PASSWORD: ${{ secrets.BDD_MECHANIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APP_JSON="$(aws secretsmanager get-secret-value \
+            --secret-id "$SECRET_ID" \
+            --query SecretString \
+            --output text)"
+          BDD_API_URL="$(jq -r '.API_PUBLIC_URL // empty' <<< "$APP_JSON")"
+
+          test -n "$BDD_API_URL"
+          test -n "$BDD_MECHANIC_USERNAME"
+          test -n "$BDD_MECHANIC_PASSWORD"
+
+          echo "::add-mask::$BDD_MECHANIC_USERNAME"
+          echo "::add-mask::$BDD_MECHANIC_PASSWORD"
+          echo "BDD_API_URL=$BDD_API_URL" >> "$GITHUB_ENV"
+          echo "BDD_MECHANIC_USERNAME=$BDD_MECHANIC_USERNAME" >> "$GITHUB_ENV"
+          echo "BDD_MECHANIC_PASSWORD=$BDD_MECHANIC_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Execute compensation BDD
+        env:
+          BDD_TIMEOUT_SECONDS: "180"
+          BDD_POLL_INTERVAL_SECONDS: "3"
+        run: mvn -B verify -Pbdd-e2e
+
+      - name: Publish Cucumber evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-saga-bdd-${{ github.run_id }}
+          path: |
+            target/cucumber-report.html
+            target/cucumber-report.json
+            target/failsafe-reports/
+            target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 30
