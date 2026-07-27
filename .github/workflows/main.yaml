@@ -112,6 +112,7 @@ jobs:
             [DB_PASSWORD]="$(jq -r '.PITFLOW_PAYMENT_DB_PASSWORD // empty' <<< "$APP_JSON")"
             [MERCADO_PAGO_ACCESS_TOKEN]="$(jq -r '.MERCADO_PAGO_ACCESS_TOKEN // empty' <<< "$APP_JSON")"
             [MERCADO_PAGO_WEBHOOK_SECRET]="$(jq -r '.MERCADO_PAGO_WEBHOOK_SECRET // empty' <<< "$APP_JSON")"
+            [JWT_SECRET]="$(jq -r '.JWT_SECRET // empty' <<< "$APP_JSON")"
             [API_PUBLIC_URL]="$(jq -r '.API_PUBLIC_URL // empty' <<< "$APP_JSON")"
           )
           for name in "${!VALUES[@]}"; do
