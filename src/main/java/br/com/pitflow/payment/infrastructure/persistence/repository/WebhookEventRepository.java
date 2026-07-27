@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface WebhookEventRepository extends JpaRepository<WebhookEventJpa, UUID> {
+    boolean existsByEventKey(String eventKey);
 }

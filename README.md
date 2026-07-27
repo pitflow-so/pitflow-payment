@@ -1,53 +1,86 @@
 # PitFlow Payment Service
 
-Microserviço independente responsável pela obrigação financeira, histórico de tentativas e fundações de Inbox/Outbox do PitFlow. O estado atual cobre as Fases 1–3: scaffolding, domínio inicial e persistência.
+Microserviço responsável pela obrigação financeira das ordens de serviço e pela
+integração com o Mercado Pago Checkout Pro.
 
 ## Stack
 
-Java 21, Spring Boot 4.0.1, Maven, PostgreSQL 16, Liquibase, Spring Data JPA, Actuator, Springdoc OpenAPI, JUnit 5, Mockito, AssertJ e Testcontainers.
+Java 21, Spring Boot 4, Maven, PostgreSQL 16, Liquibase, SQS, Spring Data JPA,
+Actuator, Springdoc OpenAPI e Testcontainers.
 
 ## Arquitetura
 
-O core (`payment/core` e `common/core`) é Java puro. Spring, HTTP e JPA permanecem em `infrastructure`. Entidades JPA e entidades de domínio são separadas e convertidas por mappers manuais. Operações atômicas usam a porta `TransactionGateway`.
+O core (`payment/core` e `common/core`) é Java puro. Spring, HTTP, SQS e JPA
+permanecem em `infrastructure`. O `controller` é o agregador de casos de uso; o
+`@RestController` é um adapter web.
 
-Estrutura principal:
+Fluxo implementado:
 
 ```text
-src/main/java/br/com/pitflow
-├── common/{core,infrastructure}
-├── payment/core/{entity,enums,exception,gateway,usecase}
-├── payment/infrastructure/persistence/{adapter,entity,mapper,repository}
-└── PitflowPaymentApplication.java
+CreatePayment (SQS)
+  -> cria/reutiliza preferência do Checkout Pro
+  -> persiste payment e payment_attempt
+  -> outbox PaymentLinkCreated
+
+Webhook assinado
+  -> valida HMAC-SHA256
+  -> consulta GET /v1/payments/{id}
+  -> valida external_reference, valor e moeda
+  -> atualiza payment e webhook inbox
+  -> outbox PaymentApproved ou PaymentRejected
 ```
 
-## Execução local
+O publisher da outbox roda no mesmo container, com claim, lease, retry e
+backoff. Não existe serviço ou pod de outbox separado.
 
-Copie `.env.example` para `.env`, ajuste somente valores locais e execute:
+## Execução local
 
 ```bash
 docker compose up -d pitflow-payment-db-local
 mvn spring-boot:run
 ```
 
-O PostgreSQL fica em `localhost:5433`, database/user `pitflow_payment` por padrão. Health checks: `/actuator/health`, `/actuator/health/liveness` e `/actuator/health/readiness`. OpenAPI: `/swagger-ui.html`.
+Por padrão, consumer, publisher, integração e webhook ficam desabilitados no
+ambiente local. As variáveis estão listadas em `.env.example`.
+
+## Endpoints
+
+Com o `context-path` `/payment`:
+
+- `POST /payment/webhooks/mercado-pago`
+- `/payment/swagger-ui/index.html`
+- `/payment/v3/api-docs`
+- `/payment/actuator/health`
+
+O webhook é público, mas rejeita notificações sem assinatura válida. O Access
+Token e a assinatura secreta nunca devem ser enviados ao cliente ou gravados no
+repositório.
+
+## Configuração do Mercado Pago
+
+- `MERCADO_PAGO_ACCESS_TOKEN`: Access Token de teste usado pelo backend.
+- `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura secreta configurada no painel.
+- `MERCADO_PAGO_NOTIFICATION_URL`: URL HTTPS pública do webhook.
+- `MERCADO_PAGO_TEST_MODE=true`: seleciona `sandbox_init_point`.
+- `MERCADO_PAGO_ENABLED=true`: habilita o adapter.
+- `PAYMENT_WEBHOOK_ENABLED=true`: habilita o endpoint.
+
+Pagamentos criados com credenciais de teste não disparam notificações reais.
+Use o simulador de Webhooks do painel do Mercado Pago para homologar o receptor.
 
 ## Build e testes
 
 ```bash
 mvn clean verify
-docker compose config
+docker build -t pitflow-payment:local .
 ```
 
-Os testes de integração usam PostgreSQL real via Testcontainers e são ignorados explicitamente quando Docker não está disponível; H2 não é usado.
+Os testes de integração usam PostgreSQL real via Testcontainers. H2 não é usado.
 
-## Liquibase
+## Pendências
 
-O Hibernate usa apenas `ddl-auto: validate`. O Liquibase aplica SQL PostgreSQL nativo em `src/main/resources/db/changelog/migrations`: payments, payment attempts, webhook Inbox e Outbox.
-
-## Variáveis
-
-As variáveis suportadas estão documentadas em `.env.example`. Valores do Mercado Pago e do Service Order são placeholders para fases futuras e não são consumidos nesta versão.
-
-## Limitações e próximas etapas
-
-Não há endpoints de pagamentos, autenticação interna, chamadas ao Mercado Pago, webhook funcional, processadores Inbox/Outbox, callback ou reconciliação. A próxima etapa é a Fase 4, API interna de pagamentos e autenticação por `X-Internal-Api-Key`.
+- reconciliação periódica para webhook perdido;
+- eventos de expiração/cancelamento;
+- endpoints REST de consulta;
+- métricas e quality gate;
+- homologação integrada do webhook e da SAGA.

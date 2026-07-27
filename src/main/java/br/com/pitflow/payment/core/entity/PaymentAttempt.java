@@ -15,4 +15,9 @@ public record PaymentAttempt(UUID id, UUID paymentId, String providerPreferenceI
         if ((providerPreferenceId == null) != (checkoutUrl == null))
             throw new InvalidPaymentDataException("providerPreferenceId and checkoutUrl must be supplied together");
     }
+
+    public PaymentAttempt withProviderPayment(String paymentId, String status, String statusDetail, Instant now) {
+        return new PaymentAttempt(id, this.paymentId, providerPreferenceId, paymentId, checkoutUrl, status,
+                statusDetail, expiresAt, createdAt, now);
+    }
 }

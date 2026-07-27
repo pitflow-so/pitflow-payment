@@ -18,6 +18,8 @@ public interface PaymentProviderGateway {
     record CheckoutPreferenceResult(String preferenceId, String checkoutUrl, Instant expiresAt) {
     }
 
-    record ProviderPaymentResult(String providerPaymentId, String status) {
+    record ProviderPaymentResult(String providerPaymentId, String status, String statusDetail,
+                                 String externalReference, BigDecimal amount, String currency,
+                                 Instant approvedAt) {
     }
 }

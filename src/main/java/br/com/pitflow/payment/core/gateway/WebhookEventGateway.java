@@ -1,12 +1,13 @@
 package br.com.pitflow.payment.core.gateway;
 
-import java.util.Optional;
+import java.time.Instant;
 
 public interface WebhookEventGateway {
-    WebhookEvent save(WebhookEvent event);
+    boolean existsByEventKey(String eventKey);
 
-    Optional<WebhookEvent> findByEventKey(String key);
+    void save(WebhookEvent event);
 
-    record WebhookEvent(String eventKey, String payload) {
+    record WebhookEvent(String eventKey, String providerEventId, String providerPaymentId, String action,
+                        String payload, Instant receivedAt, Instant processedAt) {
     }
 }

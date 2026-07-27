@@ -30,7 +30,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "payment.mercado-pago.enabled=true",
+        "payment.mercado-pago.access-token=test-access-token",
+        "payment.mercado-pago.webhook-secret=test-webhook-secret",
+        "payment.webhook.enabled=true"
+})
 @Testcontainers(disabledWithoutDocker = true)
 class PostgreSqlPersistenceIT {
     @Container
@@ -114,5 +119,17 @@ class PostgreSqlPersistenceIT {
                 "payment.created", "{\"ok\":true}", "PENDING", "queue", 0, Instant.now(), null, null, null));
         assertThat(webhooks.findById(w.getId()).orElseThrow().getPayload()).contains("true");
         assertThat(outbox.findById(o.getId()).orElseThrow().getPayload()).contains("true");
+    }
+
+    @Test
+    void webhookEventKeyEnforcesInboxIdempotency() {
+        Instant now = Instant.now();
+        webhooks.saveAndFlush(new WebhookEventJpa(UUID.randomUUID(), "event-unique", "MERCADO_PAGO",
+                "notification-1", "payment-1", "payment.updated", "{\"ok\":true}", "PROCESSED", 0,
+                now, now, null, null));
+        assertThat(webhooks.existsByEventKey("event-unique")).isTrue();
+        assertThatThrownBy(() -> webhooks.saveAndFlush(new WebhookEventJpa(UUID.randomUUID(), "event-unique",
+                "MERCADO_PAGO", "notification-1", "payment-1", "payment.updated", "{\"ok\":true}",
+                "PROCESSED", 0, now, now, null, null))).isInstanceOf(DataIntegrityViolationException.class);
     }
 }

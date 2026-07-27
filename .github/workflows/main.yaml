@@ -81,6 +81,8 @@ jobs:
             [DB_USERNAME]="$(jq -r '.PITFLOW_PAYMENT_DB_USERNAME // empty' <<< "$APP_JSON")"
             [DB_PASSWORD]="$(jq -r '.PITFLOW_PAYMENT_DB_PASSWORD // empty' <<< "$APP_JSON")"
             [MERCADO_PAGO_ACCESS_TOKEN]="$(jq -r '.MERCADO_PAGO_ACCESS_TOKEN // empty' <<< "$APP_JSON")"
+            [MERCADO_PAGO_WEBHOOK_SECRET]="$(jq -r '.MERCADO_PAGO_WEBHOOK_SECRET // empty' <<< "$APP_JSON")"
+            [API_PUBLIC_URL]="$(jq -r '.API_PUBLIC_URL // empty' <<< "$APP_JSON")"
           )
           for name in "${!VALUES[@]}"; do
             value="${VALUES[$name]}"
@@ -103,4 +105,5 @@ jobs:
           envsubst < infra/k8s/secrets.yaml | kubectl apply -f -
           kubectl apply -f infra/k8s/service.yaml
           envsubst < infra/k8s/deployment.yaml | kubectl apply -f -
+          kubectl apply -f infra/k8s/ingress.yaml
           kubectl rollout status deployment/pitflow-payment --namespace pitflow --timeout=600s

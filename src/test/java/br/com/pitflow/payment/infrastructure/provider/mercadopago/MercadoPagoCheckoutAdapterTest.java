@@ -62,4 +62,27 @@ class MercadoPagoCheckoutAdapterTest {
         assertThat(result.checkoutUrl()).isEqualTo("https://sandbox/new");
         server.verify();
     }
+
+    @Test
+    void obtainsAuthoritativePaymentData() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        var adapter = new MercadoPagoCheckoutAdapter(builder, JsonMapper.builder().build(), "https://api.test",
+                "TEST-token", true);
+        server.expect(once(), requestTo("https://api.test/v1/payments/987"))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(header("Authorization", "Bearer TEST-token"))
+                .andRespond(withSuccess("""
+                        {"id":987,"status":"approved","status_detail":"accredited",
+                        "external_reference":"payment:123","transaction_amount":450.00,
+                        "currency_id":"BRL","date_approved":"2026-07-27T01:00:00Z"}
+                        """, MediaType.APPLICATION_JSON));
+
+        var result = adapter.findPaymentByProviderId("987");
+
+        assertThat(result.status()).isEqualTo("approved");
+        assertThat(result.externalReference()).isEqualTo("payment:123");
+        assertThat(result.amount()).isEqualByComparingTo("450.00");
+        server.verify();
+    }
 }
