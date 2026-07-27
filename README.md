@@ -75,7 +75,10 @@ mvn clean verify
 docker build -t pitflow-payment:local .
 ```
 
-Os testes de integração usam PostgreSQL real via Testcontainers. H2 não é usado.
+O Dockerfile empacota o JAR já produzido e validado pelo Maven, evitando uma
+segunda compilação durante o build da imagem. Portanto, execute o Maven antes
+do `docker build`. Os testes de integração usam PostgreSQL real via
+Testcontainers. H2 não é usado.
 
 ## Pendências
 

@@ -1,0 +1,4 @@
+*
+!Dockerfile
+!target/
+!target/pitflow-payment-*.jar
