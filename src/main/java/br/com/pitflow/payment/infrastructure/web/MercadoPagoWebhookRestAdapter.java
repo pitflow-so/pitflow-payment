@@ -52,6 +52,15 @@ public class MercadoPagoWebhookRestAdapter {
             return ResponseEntity.badRequest().body(Map.of("status", "invalid_payload"));
         }
         if (!signatures.isValid(signature, requestId, effectiveDataId)) {
+            LOGGER.warn(
+                    "Rejected Mercado Pago webhook: invalid signature "
+                            + "signaturePresent={} requestIdPresent={} "
+                            + "dataIdSource={} type={}",
+                    hasText(signature),
+                    hasText(requestId),
+                    dataIdSource(queryDataId, legacyQueryDataId, bodyDataId),
+                    effectiveType
+            );
             return ResponseEntity.status(401).body(Map.of("status", "invalid_signature"));
         }
         String notificationId = firstNonBlank(text(root, "id"), requestId);
@@ -85,6 +94,27 @@ public class MercadoPagoWebhookRestAdapter {
                 && bodyValue != null
                 && !bodyValue.isBlank()
                 && !queryValue.equals(bodyValue);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static String dataIdSource(
+            String queryDataId,
+            String legacyQueryDataId,
+            String bodyDataId
+    ) {
+        if (hasText(queryDataId)) {
+            return "data.id-query";
+        }
+        if (hasText(legacyQueryDataId)) {
+            return "legacy-id-query";
+        }
+        if (hasText(bodyDataId)) {
+            return "body";
+        }
+        return "missing";
     }
 
     private static String text(tools.jackson.databind.JsonNode node, String field) {
