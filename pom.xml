@@ -21,6 +21,7 @@
         <java.version>21</java.version>
         <testcontainers.version>2.0.2</testcontainers.version>
         <aws.sdk.version>2.25.60</aws.sdk.version>
+        <cucumber.version>7.34.4</cucumber.version>
     </properties>
 
     <dependencyManagement>
@@ -124,6 +125,19 @@
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -148,4 +162,44 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>bdd-e2e</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <execution>
+                                <id>payment-saga-compensation-bdd</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <classpathScope>test</classpathScope>
+                                    <mainClass>io.cucumber.core.cli.Main</mainClass>
+                                    <arguments>
+                                        <argument>classpath:features/payment_saga_compensation.feature</argument>
+                                        <argument>--glue</argument>
+                                        <argument>br.com.pitflow.payment.bdd</argument>
+                                        <argument>--plugin</argument>
+                                        <argument>pretty</argument>
+                                        <argument>--plugin</argument>
+                                        <argument>html:target/cucumber-report.html</argument>
+                                        <argument>--plugin</argument>
+                                        <argument>json:target/cucumber-report.json</argument>
+                                        <argument>--publish-quiet</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
