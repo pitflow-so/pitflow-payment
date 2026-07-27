@@ -4,6 +4,8 @@ import br.com.pitflow.payment.controller.PaymentWebhookController;
 import br.com.pitflow.payment.core.usecase.inputPort.ProcessMercadoPagoWebhook;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +18,7 @@ import java.util.Map;
 @RequestMapping("/webhooks/mercado-pago")
 @Tag(name = "Mercado Pago Webhook")
 public class MercadoPagoWebhookRestAdapter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MercadoPagoWebhookRestAdapter.class);
     private final MercadoPagoWebhookSignatureValidator signatures;
     private final PaymentWebhookController controller;
     private final ObjectMapper mapper;
@@ -53,6 +56,10 @@ public class MercadoPagoWebhookRestAdapter {
         String eventKey = notificationId + ":" + action + ":" + bodyDataId;
         ProcessMercadoPagoWebhook.Result result = controller.mercadoPago(
                 new ProcessMercadoPagoWebhook.Command(eventKey, notificationId, bodyDataId, action, rawPayload));
+        if (result.status() == ProcessMercadoPagoWebhook.Status.IGNORED) {
+            LOGGER.warn("Ignoring Mercado Pago payment not owned by PitFlow notificationId={} paymentId={} action={}",
+                    notificationId, bodyDataId, action);
+        }
         return ResponseEntity.ok(Map.of("status", result.status().name().toLowerCase()));
     }
 }

@@ -35,8 +35,8 @@ public final class ProcessMercadoPagoWebhookImp implements ProcessMercadoPagoWeb
         if (webhooks.existsByEventKey(command.eventKey())) return new Result(Status.DUPLICATE, null);
 
         var official = provider.findPaymentByProviderId(command.paymentId());
-        var payment = payments.findByExternalReference(official.externalReference())
-                .orElseThrow(() -> new IllegalArgumentException("Payment external_reference is unknown"));
+        var payment = payments.findByExternalReference(official.externalReference()).orElse(null);
+        if (payment == null) return new Result(Status.IGNORED, null);
         if (official.amount() == null || payment.getAmount().compareTo(official.amount()) != 0
                 || !payment.getCurrency().equals(official.currency())) {
             throw new IllegalArgumentException("Provider payment amount or currency does not match");

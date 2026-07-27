@@ -71,6 +71,20 @@ class ProcessMercadoPagoWebhookImpTest {
     }
 
     @Test
+    void ignoresProviderPaymentThatDoesNotBelongToPitflow() {
+        when(provider.findPaymentByProviderId("987")).thenReturn(new PaymentProviderGateway.ProviderPaymentResult(
+                "987", "approved", "accredited", "OS-TESTE-001", new BigDecimal("10.00"), "BRL", now));
+        when(payments.findByExternalReference("OS-TESTE-001")).thenReturn(Optional.empty());
+
+        var result = useCase().execute(command());
+
+        assertThat(result.status()).isEqualTo(ProcessMercadoPagoWebhook.Status.IGNORED);
+        assertThat(result.localPaymentId()).isNull();
+        verifyNoInteractions(attempts, events);
+        verify(webhooks, never()).save(any());
+    }
+
+    @Test
     void rejectsTamperedAmountBeforeChangingLocalState() {
         Payment payment = Payment.create(UUID.randomUUID(), UUID.randomUUID(), 1, "payment:123",
                 UUID.randomUUID().toString(), "hash", new BigDecimal("450.00"), "BRL", null, now);
