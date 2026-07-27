@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pitflow-payment
+  namespace: pitflow
+  labels:
+    app.kubernetes.io/name: pitflow-payment
+    app.kubernetes.io/part-of: pitflow
+    app.kubernetes.io/managed-by: github-actions
+  annotations:
+    alb.ingress.kubernetes.io/group.name: pitflow
+    alb.ingress.kubernetes.io/group.order: "40"
+    alb.ingress.kubernetes.io/healthcheck-path: /payment/actuator/health
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /payment
+            pathType: Prefix
+            backend:
+              service:
+                name: pitflow-payment
+                port:
+                  name: http

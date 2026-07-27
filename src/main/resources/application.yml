@@ -36,7 +36,11 @@ payment:
     lease-seconds: ${PAYMENT_OUTBOX_LEASE_SECONDS:60}
     max-backoff-seconds: ${PAYMENT_OUTBOX_MAX_BACKOFF_SECONDS:300}
   mercado-pago:
+    enabled: ${MERCADO_PAGO_ENABLED:false}
     base-url: ${MERCADO_PAGO_BASE_URL:https://api.mercadopago.com}
     access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
     test-mode: ${MERCADO_PAGO_TEST_MODE:true}
     notification-url: ${MERCADO_PAGO_NOTIFICATION_URL:}
+    webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
+  webhook:
+    enabled: ${PAYMENT_WEBHOOK_ENABLED:false}

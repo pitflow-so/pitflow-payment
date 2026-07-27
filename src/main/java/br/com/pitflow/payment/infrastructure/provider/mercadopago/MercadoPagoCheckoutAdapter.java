@@ -69,7 +69,16 @@ public class MercadoPagoCheckoutAdapter implements PaymentProviderGateway {
     public ProviderPaymentResult findPaymentByProviderId(String id) {
         String json = client.get().uri("/v1/payments/{id}", id).retrieve().body(String.class);
         JsonNode root = read(json);
-        return new ProviderPaymentResult(root.path("id").asText(), root.path("status").asText());
+        String approvedAt = root.path("date_approved").asText();
+        return new ProviderPaymentResult(
+                root.path("id").asText(),
+                root.path("status").asText(),
+                nullableText(root, "status_detail"),
+                root.path("external_reference").asText(),
+                root.path("transaction_amount").decimalValue(),
+                root.path("currency_id").asText(),
+                approvedAt.isBlank() ? null : Instant.parse(approvedAt)
+        );
     }
 
     private CheckoutPreferenceResult toResult(JsonNode node) {
@@ -89,5 +98,10 @@ public class MercadoPagoCheckoutAdapter implements PaymentProviderGateway {
         } catch (RuntimeException exception) {
             throw new IllegalStateException("Invalid Mercado Pago response", exception);
         }
+    }
+
+    private String nullableText(JsonNode node, String field) {
+        String value = node.path(field).asText();
+        return value.isBlank() ? null : value;
     }
 }
