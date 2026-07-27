@@ -192,7 +192,6 @@
                                         <argument>html:target/cucumber-report.html</argument>
                                         <argument>--plugin</argument>
                                         <argument>json:target/cucumber-report.json</argument>
-                                        <argument>--publish-quiet</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
