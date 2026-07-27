@@ -4,8 +4,11 @@ import br.com.pitflow.payment.infrastructure.persistence.entity.PaymentAttemptJp
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PaymentAttemptRepository extends JpaRepository<PaymentAttemptJpa, UUID> {
     List<PaymentAttemptJpa> findByPaymentId(UUID id);
+
+    Optional<PaymentAttemptJpa> findFirstByPaymentIdOrderByCreatedAtDesc(UUID id);
 }

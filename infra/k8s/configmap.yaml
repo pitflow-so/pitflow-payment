@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pitflow-payment-config
+  namespace: pitflow
+data:
+  DB_HOST: "${DB_HOST}"
+  DB_PORT: "${DB_PORT}"
+  DB_NAME: "${DB_NAME}"
+  DB_USERNAME: "${DB_USERNAME}"

@@ -102,7 +102,8 @@ class PostgreSqlPersistenceIT {
     @Test
     void jsonbPersistsForInboxAndOutbox() {
         WebhookEventJpa w = webhooks.saveAndFlush(new WebhookEventJpa(UUID.randomUUID(), "evt", "MERCADO_PAGO", null, null, null, "{\"ok\":true}", "RECEIVED", 0, Instant.now(), null, null, null));
-        OutboxEventJpa o = outbox.saveAndFlush(new OutboxEventJpa(UUID.randomUUID(), UUID.randomUUID(), "payment.created", "{\"ok\":true}", "PENDING", 0, Instant.now(), null, null, null));
+        OutboxEventJpa o = outbox.saveAndFlush(new OutboxEventJpa(UUID.randomUUID(), UUID.randomUUID(),
+                "payment.created", "{\"ok\":true}", "PENDING", "queue", 0, Instant.now(), null, null, null));
         assertThat(webhooks.findById(w.getId()).orElseThrow().getPayload()).contains("true");
         assertThat(outbox.findById(o.getId()).orElseThrow().getPayload()).contains("true");
     }

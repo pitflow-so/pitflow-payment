@@ -79,6 +79,7 @@ public final class Payment {
     }
 
     private static String email(String value) {
+        if (value == null || value.isBlank()) return null;
         text(value, "payerEmail");
         if (!value.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) throw invalid("payerEmail is invalid");
         return value;

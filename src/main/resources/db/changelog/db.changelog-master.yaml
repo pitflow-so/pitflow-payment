@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/migrations/003-create-webhook-events-table.sql
   - include:
       file: db/changelog/migrations/004-create-outbox-events-table.sql
+  - include:
+      file: db/changelog/migrations/005-prepare-saga-checkout-flow.sql
