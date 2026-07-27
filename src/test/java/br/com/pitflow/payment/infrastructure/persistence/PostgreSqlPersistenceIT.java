@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -44,6 +45,8 @@ class PostgreSqlPersistenceIT {
     OutboxEventRepository outbox;
     @Autowired
     JdbcTemplate jdbc;
+    @Autowired
+    RestClient.Builder restClientBuilder;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry r) {
@@ -60,6 +63,11 @@ class PostgreSqlPersistenceIT {
     void migrationsHibernateValidationAndNumericPrecisionWork() {
         Payment saved = PaymentMapper.toDomain(payments.saveAndFlush(PaymentMapper.toJpa(payment("key-a", "ext-a", UUID.randomUUID(), new BigDecimal("123.45"), "BRL"))));
         assertThat(saved.getAmount()).isEqualByComparingTo("123.45");
+    }
+
+    @Test
+    void restClientBuilderRequiredByMercadoPagoAdapterIsAvailable() {
+        assertThat(restClientBuilder).isNotNull();
     }
 
     @Test

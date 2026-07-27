@@ -26,6 +26,11 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 @Configuration
 public class PaymentFlowConfiguration {
     @Bean
+    RestClient.Builder restClientBuilder() {
+        return RestClient.builder();
+    }
+
+    @Bean
     SqsClient paymentSqsClient(@Value("${aws.region}") String region) {
         return SqsClient.builder().region(Region.of(region)).build();
     }
