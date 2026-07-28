@@ -37,6 +37,7 @@ public final class Payment {
     private Instant approvedAt;
     private Instant updatedAt;
 
+    @SuppressWarnings("java:S107") // Rehydrates the complete persisted aggregate without mutable setters.
     public Payment(UUID id, UUID serviceOrderId, long budgetVersion, String externalReference, String idempotencyKey,
                    String idempotencyPayloadHash, BigDecimal amount, String currency, PaymentStatus status,
                    PaymentProvider provider, String payerEmail, Instant approvedAt, Instant createdAt, Instant updatedAt, long version) {
@@ -62,6 +63,7 @@ public final class Payment {
             throw invalid("approvedAt is required for approved payments");
     }
 
+    @SuppressWarnings("java:S107") // Explicit factory contract keeps creation invariants inside the aggregate.
     public static Payment create(UUID id, UUID serviceOrderId, long budgetVersion, String externalReference, String idempotencyKey,
                                  String payloadHash, BigDecimal amount, String currency, String payerEmail, Instant now) {
         return new Payment(id, serviceOrderId, budgetVersion, externalReference, idempotencyKey, payloadHash, amount, currency,
@@ -81,7 +83,14 @@ public final class Payment {
     private static String email(String value) {
         if (value == null || value.isBlank()) return null;
         text(value, "payerEmail");
-        if (!value.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) throw invalid("payerEmail is invalid");
+        int at = value.indexOf('@');
+        int dot = value.indexOf('.', at + 1);
+        boolean invalidStructure = at <= 0
+                || at != value.lastIndexOf('@')
+                || dot <= at + 1
+                || dot == value.length() - 1;
+        if (invalidStructure || value.chars().anyMatch(Character::isWhitespace))
+            throw invalid("payerEmail is invalid");
         return value;
     }
 
