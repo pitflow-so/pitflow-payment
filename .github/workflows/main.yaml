@@ -31,6 +31,12 @@ jobs:
           cache: maven
       - name: Build and test
         run: mvn -B clean verify
+      - name: Publish JaCoCo coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-jacoco-${{ github.sha }}
+          path: target/site/jacoco/
+          retention-days: 14
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

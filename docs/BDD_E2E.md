@@ -31,6 +31,12 @@ em cada execução. Em seguida, inicia e conclui o diagnóstico, aprova o orçam
 pela API e aguarda a ordem chegar a `AWAITING_PAYMENT`. Nenhuma OS precisa ser
 preparada manualmente.
 
+O setup tenta autenticar o mecânico informado por `BDD_MECHANIC_USERNAME` e
+`BDD_MECHANIC_PASSWORD`. Se o usuário ainda não existir, cadastra um mecânico
+acadêmico com esses mesmos valores e repete a autenticação. Se o username já
+existir com outra senha, a execução falha para indicar inconsistência dos
+secrets.
+
 ## Execução local
 
 Configure credenciais AWS temporárias com leitura da tabela DynamoDB e exporte:
@@ -65,3 +71,28 @@ O relatório é gravado em `target/cucumber-report.html` e
 
 O workflow consulta `API_PUBLIC_URL` no secret `pitflow/bootstrap`, não imprime
 credenciais e executa somente por `workflow_dispatch`.
+
+## Evidência homologada — 27/07/2026
+
+A execução automatizada na AWS foi aprovada:
+
+```text
+1 scenarios (1 passed)
+10 steps (10 passed)
+```
+
+Evidências correlacionadas:
+
+| Componente | Identificador | Estado final |
+|---|---|---|
+| Operation | `9a982779-841f-4e29-acca-58813e5c87ad` | `CANCELLED` |
+| Payment | `c6b3db0d-fafc-4f70-ad0c-36f444294bc1` | `REJECTED` |
+| Orchestrator/SAGA | `e88a8f58-15bf-45ee-a21d-dc5dd31299f4` | `FAILED`, versão 5 |
+
+Na mesma execução, 33 testes unitários e 9 testes de persistência com
+PostgreSQL/Testcontainers foram aprovados. O replay da rejeição confirmou
+idempotência sem nova versão da SAGA.
+
+Mensagens `ERROR` e `WARN` emitidas antes do cenário são esperadas nos testes
+negativos de sanitização de exceções, assinatura inválida de webhook e
+constraints de unicidade; não representam falhas da execução.

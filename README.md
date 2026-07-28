@@ -14,24 +14,50 @@ O core (`payment/core` e `common/core`) é Java puro. Spring, HTTP, SQS e JPA
 permanecem em `infrastructure`. O `controller` é o agregador de casos de uso; o
 `@RestController` é um adapter web.
 
-Fluxo implementado:
+Fluxo de criação implementado:
 
 ```text
-CreatePayment (SQS)
-  -> cria/reutiliza preferência do Checkout Pro
-  -> persiste payment e payment_attempt
-  -> outbox PaymentLinkCreated
-
-Webhook assinado
-  -> valida HMAC-SHA256
-  -> consulta GET /v1/payments/{id}
-  -> valida external_reference, valor e moeda
-  -> atualiza payment e webhook inbox
-  -> outbox PaymentApproved ou PaymentRejected
+CreatePayment (SQS, schemaVersion 1)
+  -> valida IDs, valor positivo, moeda BRL e chave de idempotência
+  -> cria ou reutiliza o Payment da OS/orçamento
+  -> reutiliza um payment_attempt existente, se houver
+  -> busca preferência pelo external_reference ou cria uma no Checkout Pro
+  -> em transação:
+       persiste payment_attempt
+       move Payment de CREATED para CHECKOUT_PENDING
+       grava PaymentLinkCreated na outbox
+  -> remove a mensagem da fila somente após sucesso
 ```
 
-O publisher da outbox roda no mesmo container, com claim, lease, retry e
-backoff. Não existe serviço ou pod de outbox separado.
+A chave de idempotência recebida do Orchestrator identifica a SAGA. Repetições
+com o mesmo conteúdo devolvem o pagamento e o checkout já existentes; a mesma
+chave com conteúdo diferente é rejeitada. Atualmente o comando usa a versão 1
+do orçamento e não informa e-mail do pagador.
+
+Fluxo de confirmação implementado:
+
+```text
+Webhook Mercado Pago
+  -> exige type=payment, data.id consistente e assinatura HMAC-SHA256 válida
+  -> deduplica por notificationId + action + paymentId
+  -> consulta GET /v1/payments/{id} no Mercado Pago
+  -> localiza o Payment pelo external_reference
+  -> confere valor e moeda
+  -> em transação:
+       atualiza payment_attempt e o estado do Payment
+       grava o webhook na inbox
+       grava PaymentApproved ou PaymentRejected na outbox, quando aplicável
+```
+
+Os estados externos `pending`, `in_process` e `in_mediation` atualizam o
+Payment, mas não encerram a SAGA. Apenas `approved` e `rejected` geram eventos
+finais para o Orchestrator. Webhooks repetidos são idempotentes; pagamentos que
+não pertencem ao PitFlow são ignorados.
+
+O publisher da outbox roda no mesmo container. Ele usa claim com
+`FOR UPDATE SKIP LOCKED`, lease, retry e backoff, publica na fila do
+Orchestrator e marca o evento como `PUBLISHED`. Não existe serviço ou pod de
+outbox separado.
 
 ## Execução local
 
@@ -52,6 +78,18 @@ Com o `context-path` `/payment`:
 - `/payment/swagger-ui/index.html`
 - `/payment/v3/api-docs`
 - `/payment/actuator/health`
+
+Documentação publicada:
+
+- [Swagger](https://85ufbygqvi.execute-api.us-east-1.amazonaws.com/payment/swagger-ui/index.html)
+- [OpenAPI](https://85ufbygqvi.execute-api.us-east-1.amazonaws.com/payment/v3/api-docs)
+
+Localmente:
+
+- `http://localhost:8080/payment/swagger-ui/index.html`
+- `http://localhost:8080/payment/v3/api-docs`
+
+Os links publicados foram validados com HTTP 200 em 27/07/2026.
 
 O webhook é público, mas rejeita notificações sem assinatura válida. O Access
 Token e a assinatura secreta nunca devem ser enviados ao cliente ou gravados no
@@ -87,10 +125,44 @@ segunda compilação durante o build da imagem. Portanto, execute o Maven antes
 do `docker build`. Os testes de integração usam PostgreSQL real via
 Testcontainers. H2 não é usado.
 
+O `verify` executa 41 testes unitários com Surefire e 9 testes de integração com
+Failsafe/Testcontainers. O JaCoCo agrega as duas etapas no mesmo relatório e
+interrompe o build se a cobertura total de linhas ficar abaixo de 80%.
+
+Cobertura validada em 27/07/2026:
+
+| Métrica | Cobertura |
+|---|---:|
+| Linhas | 83,44% (650/779) |
+| Instruções | 82,14% (3.624/4.412) |
+| Branches | 54,36% (131/241) |
+
+O relatório HTML local fica em `target/site/jacoco/index.html`. A CI também
+publica a pasta completa no artefato `payment-jacoco-<commit-sha>`, disponível
+por 14 dias.
+
+![Cobertura JaCoCo do Payment](docs/evidencias/cobertura-jacoco.png)
+
+## BDD, CI/CD e Kubernetes
+
+O cenário [BDD E2E de compensação](docs/BDD_E2E.md) cria uma OS, avança até
+`AWAITING_PAYMENT`, rejeita o pagamento e comprova Payment `REJECTED`,
+Operation `CANCELLED`, SAGA `FAILED` e replay idempotente.
+
+O pipeline principal executa build/testes, publica uma imagem imutável
+`payment-<commit-sha>` e aplica os manifests Kubernetes no namespace `pitflow`.
+O workflow manual `Payment SAGA BDD E2E` executa a especificação Cucumber no
+ambiente integrado e publica os relatórios HTML/JSON.
+
+Health:
+
+```text
+/payment/actuator/health
+```
+
 ## Pendências
 
 - reconciliação periódica para webhook perdido;
 - eventos de expiração/cancelamento;
 - endpoints REST de consulta;
-- métricas e quality gate;
-- homologação integrada do webhook e da SAGA.
+- remover ou isolar por perfil o endpoint acadêmico antes de uso comercial.
